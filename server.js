@@ -244,37 +244,92 @@ app.get('/api/csfloat/price/:name', async (req, res) => {
 });
 
 // --- BitSkins proxy ---
-// Public API, no key needed. Aggregate endpoint returns the full CS2 catalog.
-// Prices are in millidollars (divide by 1000 for USD).
+// Public API, no key needed. Aggregate endpoint returns the full CS2 catalog
+// (~17k items, ~2.2 MB). Prices are in millidollars (divide by 1000 for USD).
 
 let bitskinsCache = { map: null, fetchedAt: 0 };
+let bitskinsFetchInFlight = null;
 const BITSKINS_CACHE_TTL = 60_000;
 
 async function getBitskinsMap() {
+  // Serve from cache if still fresh
   if (bitskinsCache.map && Date.now() - bitskinsCache.fetchedAt < BITSKINS_CACHE_TTL) {
+    console.log('[BitSkins] Cache hit (', bitskinsCache.map.size, 'items)');
     return bitskinsCache.map;
   }
-  const resp = await fetch('https://api.bitskins.com/market/insell/730');
-  if (!resp.ok) throw new Error(`BitSkins API error: ${resp.status}`);
-  const data = await resp.json();
-  const map = new Map();
-  for (const item of data.list || []) {
-    map.set(item.name, item);
+
+  // De-duplicate concurrent fetches: if one is already in flight, await it
+  if (bitskinsFetchInFlight) {
+    console.log('[BitSkins] Joining in-flight fetch');
+    return bitskinsFetchInFlight;
   }
-  bitskinsCache = { map, fetchedAt: Date.now() };
-  return map;
+
+  const url = 'https://api.bitskins.com/market/insell/730';
+  console.log('[BitSkins] Cache miss. Fetching', url);
+
+  bitskinsFetchInFlight = (async () => {
+    const startedAt = Date.now();
+    try {
+      const resp = await fetch(url, {
+        headers: {
+          'User-Agent': 'cs2-skin-tracker/1.0',
+          'Accept': 'application/json',
+        },
+      });
+      console.log('[BitSkins] HTTP', resp.status, '|', resp.headers.get('content-type'), '| took', Date.now() - startedAt, 'ms');
+
+      if (!resp.ok) {
+        const bodyExcerpt = await resp.text().then(t => t.slice(0, 500)).catch(() => '<unreadable>');
+        console.error('[BitSkins] Non-OK response body excerpt:', bodyExcerpt);
+        throw new Error(`BitSkins API error: HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      console.log('[BitSkins] Parsed JSON. Top-level keys:', Object.keys(data), '| list length:', data.list?.length);
+
+      if (!data.list || !Array.isArray(data.list)) {
+        console.error('[BitSkins] Unexpected response shape. First 500 chars:', JSON.stringify(data).slice(0, 500));
+        throw new Error('BitSkins response missing "list" array');
+      }
+
+      const map = new Map();
+      for (const item of data.list) {
+        map.set(item.name, item);
+      }
+      bitskinsCache = { map, fetchedAt: Date.now() };
+      console.log('[BitSkins] Built map with', map.size, 'items');
+      return map;
+    } catch (err) {
+      console.error('[BitSkins] Fetch failed:', err.name, '-', err.message);
+      throw err;
+    } finally {
+      bitskinsFetchInFlight = null;
+    }
+  })();
+
+  return bitskinsFetchInFlight;
 }
 
 app.get('/api/bitskins/price/:name', async (req, res) => {
+  const name = decodeURIComponent(req.params.name);
   try {
-    const name = decodeURIComponent(req.params.name);
+    console.log('[BitSkins] Price request:', name);
     const map = await getBitskinsMap();
     const item = map.get(name);
-    if (!item || item.price_min == null) return res.json({ price: null });
-    res.json({ price: item.price_min / 1000 });
+    if (!item) {
+      console.log('[BitSkins] Item not found in catalog:', name);
+      return res.json({ price: null });
+    }
+    if (item.price_min == null) {
+      console.log('[BitSkins] Item has no price_min. Raw item:', JSON.stringify(item));
+      return res.json({ price: null });
+    }
+    const price = item.price_min / 1000;
+    console.log('[BitSkins] Resolved price for', name, '=', '$' + price.toFixed(2));
+    res.json({ price });
   } catch (err) {
-    console.error('BitSkins price error:', err.message);
-    res.json({ price: null, error: 'Failed to fetch from BitSkins' });
+    console.error('[BitSkins] Price endpoint failed for', name, ':', err.message);
+    res.json({ price: null, error: 'Failed to fetch from BitSkins: ' + err.message });
   }
 });
 
