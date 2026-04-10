@@ -12,7 +12,7 @@ body {
 }
 
 .container {
-  max-width: 1100px;
+  max-width: 1300px;
   margin: 0 auto;
   padding: 40px 20px;
 }
@@ -369,7 +369,9 @@ td.price.unavailable {
 .skin-name {
   font-weight: 500;
   cursor: pointer;
-  display: inline;
+  display: inline-block;
+  padding: 6px 4px;
+  margin: -6px -4px;
 }
 
 .skin-name:hover {
@@ -466,6 +468,8 @@ th .badge-inactive {
   align-items: center;
   justify-content: center;
   z-index: 100;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .modal-overlay.visible {
@@ -479,21 +483,29 @@ th .badge-inactive {
   padding: 32px;
   max-width: 420px;
   width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
   position: relative;
   text-align: center;
+  cursor: default;
 }
 
 .modal-close {
   position: absolute;
-  top: 12px;
-  right: 16px;
+  top: 8px;
+  right: 8px;
   background: none;
   border: none;
   color: #666;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
+  line-height: 1;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   transition: color 0.2s, background 0.2s;
 }
 
@@ -505,6 +517,7 @@ th .badge-inactive {
 .modal-skin-image {
   width: 200px;
   height: 150px;
+  max-width: 100%;
   object-fit: contain;
   background: #222233;
   border-radius: 8px;
@@ -514,6 +527,7 @@ th .badge-inactive {
 .modal-skin-placeholder {
   width: 200px;
   height: 150px;
+  max-width: 100%;
   background: #222233;
   border-radius: 8px;
   margin: 0 auto 16px;
@@ -573,13 +587,14 @@ th .badge-inactive {
 
 .modal-link {
   display: block;
-  padding: 10px 16px;
+  padding: 14px 16px;
   background: #222233;
   color: #ff6b00;
   text-decoration: none;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 500;
+  min-height: 44px;
   transition: background 0.2s;
 }
 
@@ -610,5 +625,30 @@ th .badge-inactive {
   .watchlist-table thead th,
   .watchlist-table tbody td {
     padding: 10px 8px;
+  }
+
+  .modal-content {
+    width: 94%;
+    padding: 24px 20px;
+    max-height: 92vh;
+  }
+
+  .modal-skin-image,
+  .modal-skin-placeholder {
+    width: 160px;
+    height: 120px;
+  }
+
+  .modal-skin-name {
+    font-size: 1rem;
+  }
+
+  .modal-link {
+    padding: 16px;
+    font-size: 1rem;
+  }
+
+  .modal-prices {
+    margin: 16px 0;
   }
 }

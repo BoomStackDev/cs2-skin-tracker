@@ -1,6 +1,6 @@
 # CS2 Skin Tracker
 
-A web app that tracks CS2 skin prices across multiple marketplaces (Skinport, Steam, and CSFloat) and highlights the cheapest option.
+A web app that tracks CS2 skin prices across multiple marketplaces (Skinport, Steam, CSFloat, BitSkins, and DMarket) and highlights the cheapest option.
 
 ## Local Development
 
@@ -18,7 +18,7 @@ A web app that tracks CS2 skin prices across multiple marketplaces (Skinport, St
    CSFLOAT_API_KEY=your_key_here
    ```
 
-   The Skinport and Steam APIs are public and require no key. CSFloat requires an API key — get one at [csfloat.com](https://csfloat.com/).
+   The Skinport, Steam, BitSkins, and DMarket APIs are all public and require no key. CSFloat requires an API key — get one at [csfloat.com](https://csfloat.com/).
 
 3. Start the server:
 
@@ -67,13 +67,24 @@ vercel deploy          # Preview deployment
 vercel deploy --prod   # Production deployment
 ```
 
+## Marketplaces
+
+| Marketplace | API key required | Notes |
+|---|---|---|
+| Skinport | No | Public catalog API ([api.skinport.com](https://docs.skinport.com/)) |
+| Steam Community Market | No | Public price overview endpoint |
+| CSFloat | Yes | Set `CSFLOAT_API_KEY` in `.env` ([csfloat.com](https://csfloat.com/)) |
+| BitSkins | No | Public `/market/insell/730` aggregate endpoint |
+| DMarket | No | Public `/price-aggregator/v1/aggregated-prices` endpoint |
+| Skin Monkey | — | No public API; shown as inactive placeholder |
+
 ## Features
 
 - Fuzzy search for any CS2 skin by name (typo-tolerant)
 - Skin image thumbnails in search results
 - Advanced filters: float range, paint seed, wear, StatTrak, Souvenir
 - Add skins to a persistent watchlist
-- Compare lowest prices from Skinport, Steam, and CSFloat side by side
+- Compare lowest prices from Skinport, Steam, CSFloat, BitSkins, and DMarket side by side
 - Best price highlighted in green
 - Click a skin name to view details and marketplace links
 - Refresh all prices with one click

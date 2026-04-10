@@ -235,6 +235,63 @@ app.get('/api/csfloat/price/:name', async (req, res) => {
   }
 });
 
+// --- BitSkins proxy ---
+// Public API, no key needed. Aggregate endpoint returns the full CS2 catalog.
+// Prices are in millidollars (divide by 1000 for USD).
+
+let bitskinsCache = { map: null, fetchedAt: 0 };
+const BITSKINS_CACHE_TTL = 60_000;
+
+async function getBitskinsMap() {
+  if (bitskinsCache.map && Date.now() - bitskinsCache.fetchedAt < BITSKINS_CACHE_TTL) {
+    return bitskinsCache.map;
+  }
+  const resp = await fetch('https://api.bitskins.com/market/insell/730');
+  if (!resp.ok) throw new Error(`BitSkins API error: ${resp.status}`);
+  const data = await resp.json();
+  const map = new Map();
+  for (const item of data.list || []) {
+    map.set(item.name, item);
+  }
+  bitskinsCache = { map, fetchedAt: Date.now() };
+  return map;
+}
+
+app.get('/api/bitskins/price/:name', async (req, res) => {
+  try {
+    const name = decodeURIComponent(req.params.name);
+    const map = await getBitskinsMap();
+    const item = map.get(name);
+    if (!item || item.price_min == null) return res.json({ price: null });
+    res.json({ price: item.price_min / 1000 });
+  } catch (err) {
+    console.error('BitSkins price error:', err.message);
+    res.json({ price: null, error: 'Failed to fetch from BitSkins' });
+  }
+});
+
+// --- DMarket proxy ---
+// Public price-aggregator endpoint, no key needed.
+// Offers.BestPrice is a USD string in dollars (e.g. "36" or "141.99").
+
+app.get('/api/dmarket/price/:name', async (req, res) => {
+  try {
+    const name = decodeURIComponent(req.params.name);
+    const url = `https://api.dmarket.com/price-aggregator/v1/aggregated-prices?Titles=${encodeURIComponent(name)}`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`DMarket API error: ${resp.status}`);
+    const data = await resp.json();
+    const entry = data.AggregatedTitles?.[0];
+    const best = entry?.Offers?.BestPrice;
+    if (best == null || best === '') return res.json({ price: null });
+    const price = parseFloat(best);
+    res.json({ price: isNaN(price) ? null : price });
+  } catch (err) {
+    console.error('DMarket price error:', err.message);
+    res.json({ price: null, error: 'Failed to fetch from DMarket' });
+  }
+});
+
 // --- Steam image proxy ---
 // Looks up the item's icon via Steam Market, caches the CDN URL, and redirects.
 

@@ -202,6 +202,8 @@ function renderWatchlist() {
       <td class="price skinport-price"><span class="loading-dots">Loading</span></td>
       <td class="price steam-price"><span class="loading-dots">Loading</span></td>
       <td class="price csfloat-price">${csfloatActive ? '<span class="loading-dots">Loading</span>' : '<span class="badge-inactive">Inactive</span>'}</td>
+      <td class="price bitskins-price"><span class="loading-dots">Loading</span></td>
+      <td class="price dmarket-price"><span class="loading-dots">Loading</span></td>
       <td class="price skinmonkey-price"><span class="badge-inactive">Inactive</span></td>
       <td class="best-price">-</td>
       <td style="text-align:center">
@@ -258,6 +260,8 @@ async function fetchPricesForSkin(skin) {
   const skinportCell = row.querySelector('.skinport-price');
   const steamCell = row.querySelector('.steam-price');
   const csfloatCell = row.querySelector('.csfloat-price');
+  const bitskinsCell = row.querySelector('.bitskins-price');
+  const dmarketCell = row.querySelector('.dmarket-price');
   const bestCell = row.querySelector('.best-price');
 
   const filters = skin.filters || {};
@@ -271,7 +275,7 @@ async function fetchPricesForSkin(skin) {
   const csfloatUrl = `/api/csfloat/price/${encodeURIComponent(skin.name)}${csfloatQuery ? '?' + csfloatQuery : ''}`;
 
   // Fetch all active sources in parallel
-  const [skinportData, steamData, csfloatData] = await Promise.all([
+  const [skinportData, steamData, csfloatData, bitskinsData, dmarketData] = await Promise.all([
     fetch(`/api/skinport/price/${encodeURIComponent(skin.name)}`)
       .then(r => r.json())
       .catch(() => ({ price: null })),
@@ -281,6 +285,12 @@ async function fetchPricesForSkin(skin) {
     csfloatActive
       ? fetch(csfloatUrl).then(r => r.json()).catch(() => ({ price: null }))
       : Promise.resolve({ price: null, inactive: true }),
+    fetch(`/api/bitskins/price/${encodeURIComponent(skin.name)}`)
+      .then(r => r.json())
+      .catch(() => ({ price: null })),
+    fetch(`/api/dmarket/price/${encodeURIComponent(skin.name)}`)
+      .then(r => r.json())
+      .catch(() => ({ price: null })),
   ]);
 
   // If CSFloat returned an auth error, switch to inactive
@@ -293,12 +303,16 @@ async function fetchPricesForSkin(skin) {
   const skinportPrice = skinportData.price;
   const steamPrice = steamData.price;
   const csfloatPrice = csfloatData.price;
+  const bitskinsPrice = bitskinsData.price;
+  const dmarketPrice = dmarketData.price;
 
   // Determine cheapest across all active sources
   const prices = [];
   if (skinportPrice != null) prices.push({ source: 'Skinport', price: skinportPrice });
   if (steamPrice != null) prices.push({ source: 'Steam', price: steamPrice });
   if (csfloatPrice != null) prices.push({ source: 'CSFloat', price: csfloatPrice });
+  if (bitskinsPrice != null) prices.push({ source: 'BitSkins', price: bitskinsPrice });
+  if (dmarketPrice != null) prices.push({ source: 'DMarket', price: dmarketPrice });
   prices.sort((a, b) => a.price - b.price);
   const cheapest = prices.length > 0 ? prices[0].price : null;
 
@@ -308,7 +322,13 @@ async function fetchPricesForSkin(skin) {
   }
 
   // Cache prices for modal display
-  priceCache.set(skin.id, { skinport: skinportPrice, steam: steamPrice, csfloat: csfloatPrice });
+  priceCache.set(skin.id, {
+    skinport: skinportPrice,
+    steam: steamPrice,
+    csfloat: csfloatPrice,
+    bitskins: bitskinsPrice,
+    dmarket: dmarketPrice,
+  });
 
   // Skinport cell
   if (skinportPrice != null) {
@@ -344,6 +364,24 @@ async function fetchPricesForSkin(skin) {
   } else {
     csfloatCell.innerHTML = '<div class="price-value">N/A</div>';
     csfloatCell.className = 'price csfloat-price unavailable';
+  }
+
+  // BitSkins cell
+  if (bitskinsPrice != null) {
+    bitskinsCell.innerHTML = `<div class="price-value">$${bitskinsPrice.toFixed(2)}</div>`;
+    bitskinsCell.className = 'price bitskins-price ' + priceClass(bitskinsPrice);
+  } else {
+    bitskinsCell.innerHTML = '<div class="price-value">N/A</div>';
+    bitskinsCell.className = 'price bitskins-price unavailable';
+  }
+
+  // DMarket cell
+  if (dmarketPrice != null) {
+    dmarketCell.innerHTML = `<div class="price-value">$${dmarketPrice.toFixed(2)}</div>`;
+    dmarketCell.className = 'price dmarket-price ' + priceClass(dmarketPrice);
+  } else {
+    dmarketCell.innerHTML = '<div class="price-value">N/A</div>';
+    dmarketCell.className = 'price dmarket-price unavailable';
   }
 
   // Best price cell
@@ -423,6 +461,8 @@ function openSkinModal(skinId) {
   if (csfloatActive) {
     priceRows.push({ source: 'CSFloat', price: cached.csfloat });
   }
+  priceRows.push({ source: 'BitSkins', price: cached.bitskins });
+  priceRows.push({ source: 'DMarket', price: cached.dmarket });
 
   const priceRowsHtml = priceRows.map(r => `
     <div class="modal-price-row">
@@ -438,6 +478,8 @@ function openSkinModal(skinId) {
   if (csfloatActive) {
     links.push({ label: 'View on CSFloat', url: `https://csfloat.com/search?market_hash_name=${encodeURIComponent(name)}` });
   }
+  links.push({ label: 'View on BitSkins', url: `https://bitskins.com/market/cs2?search=${encodeURIComponent(name)}` });
+  links.push({ label: 'View on DMarket', url: `https://dmarket.com/ingame-items/item-list/csgo-skins?title=${encodeURIComponent(name)}` });
 
   const linksHtml = links.map(l =>
     `<a href="${escapeAttr(l.url)}" target="_blank" rel="noopener" class="modal-link">${escapeHtml(l.label)}</a>`
