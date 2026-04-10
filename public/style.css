@@ -309,6 +309,32 @@ header h1 {
   color: #ccc;
 }
 
+.watchlist-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.sort-select {
+  padding: 12px 14px;
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.sort-select:focus {
+  border-color: #ff6b00;
+}
+
+.sort-select option {
+  background: #1a1a24;
+}
+
 .empty-state {
   text-align: center;
   padding: 48px 20px;
@@ -668,6 +694,16 @@ th .badge-inactive {
     flex-direction: column;
     gap: 12px;
     align-items: flex-start;
+  }
+
+  .watchlist-controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sort-select {
+    width: 100%;
   }
 
   .watchlist-table {

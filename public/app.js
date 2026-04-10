@@ -1,5 +1,4 @@
 const searchInput = document.getElementById('search-input');
-const searchBtn = document.getElementById('search-btn');
 const searchResults = document.getElementById('search-results');
 const filtersToggle = document.getElementById('filters-toggle');
 const filtersBody = document.getElementById('filters-body');
@@ -9,13 +8,16 @@ const filterPaintSeed = document.getElementById('filter-paint-seed');
 const filterWear = document.getElementById('filter-wear');
 const filterStattrak = document.getElementById('filter-stattrak');
 const filterSouvenir = document.getElementById('filter-souvenir');
+const searchForm = document.getElementById('search-form');
 const refreshBtn = document.getElementById('refresh-btn');
+const sortSelect = document.getElementById('sort-select');
 const watchlistTable = document.getElementById('watchlist-table');
 const watchlistBody = document.getElementById('watchlist-body');
 const watchlistEmpty = document.getElementById('watchlist-empty');
 
 let watchlist = [];
 let csfloatActive = true;
+let currentSort = 'dateDesc';
 const priceCache = new Map();
 
 // --- CSFloat status ---
@@ -109,9 +111,9 @@ async function searchSkins(query) {
   }
 }
 
-searchBtn.addEventListener('click', () => searchSkins(searchInput.value));
-searchInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') searchSkins(searchInput.value);
+searchForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  searchSkins(searchInput.value);
 });
 
 document.addEventListener('click', (e) => {
@@ -217,6 +219,46 @@ function formatFilterTags(filters) {
   return tags.join(' \u00b7 ');
 }
 
+function priceFor(id, source) {
+  const cached = priceCache.get(id);
+  const p = cached?.[source];
+  return p != null ? p : Infinity;
+}
+
+function bestPriceFor(id) {
+  const cached = priceCache.get(id);
+  if (!cached) return Infinity;
+  const prices = ['skinport', 'steam', 'csfloat', 'bitskins', 'dmarket']
+    .map(k => cached[k])
+    .filter(p => p != null);
+  return prices.length > 0 ? Math.min(...prices) : Infinity;
+}
+
+function isPriceSort() {
+  return ['bestAsc', 'skinportAsc', 'steamAsc', 'bitskinsAsc', 'dmarketAsc'].includes(currentSort);
+}
+
+function getSortedWatchlist() {
+  const list = [...watchlist];
+  switch (currentSort) {
+    case 'nameAsc':
+      return list.sort((a, b) => a.name.localeCompare(b.name));
+    case 'bestAsc':
+      return list.sort((a, b) => bestPriceFor(a.id) - bestPriceFor(b.id));
+    case 'skinportAsc':
+      return list.sort((a, b) => priceFor(a.id, 'skinport') - priceFor(b.id, 'skinport'));
+    case 'steamAsc':
+      return list.sort((a, b) => priceFor(a.id, 'steam') - priceFor(b.id, 'steam'));
+    case 'bitskinsAsc':
+      return list.sort((a, b) => priceFor(a.id, 'bitskins') - priceFor(b.id, 'bitskins'));
+    case 'dmarketAsc':
+      return list.sort((a, b) => priceFor(a.id, 'dmarket') - priceFor(b.id, 'dmarket'));
+    case 'dateDesc':
+    default:
+      return list.sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+  }
+}
+
 function renderWatchlist() {
   if (watchlist.length === 0) {
     watchlistTable.hidden = true;
@@ -227,7 +269,9 @@ function renderWatchlist() {
   watchlistTable.hidden = false;
   watchlistEmpty.hidden = true;
 
-  watchlistBody.innerHTML = watchlist.map(skin => {
+  const sorted = getSortedWatchlist();
+
+  watchlistBody.innerHTML = sorted.map(skin => {
     const filterText = formatFilterTags(skin.filters);
     return `
     <tr data-id="${escapeAttr(skin.id)}">
@@ -247,7 +291,17 @@ function renderWatchlist() {
       </td>
     </tr>`;
   }).join('');
+
+  // Re-apply cached prices to the freshly rendered cells
+  sorted.forEach(skin => {
+    if (priceCache.has(skin.id)) renderPricesForSkin(skin);
+  });
 }
+
+sortSelect.addEventListener('change', () => {
+  currentSort = sortSelect.value;
+  renderWatchlist();
+});
 
 // Remove skin
 watchlistBody.addEventListener('click', async (e) => {
@@ -285,21 +339,14 @@ async function fetchAllPrices() {
   const promises = watchlist.map(skin => fetchPricesForSkin(skin));
   await Promise.all(promises);
 
+  // Re-sort if currently sorting by a price column (prices may have changed)
+  if (isPriceSort()) renderWatchlist();
+
   refreshBtn.disabled = false;
   refreshBtn.textContent = 'Refresh Prices';
 }
 
 async function fetchPricesForSkin(skin) {
-  const row = watchlistBody.querySelector(`tr[data-id="${CSS.escape(skin.id)}"]`);
-  if (!row) return;
-
-  const skinportCell = row.querySelector('.skinport-price');
-  const steamCell = row.querySelector('.steam-price');
-  const csfloatCell = row.querySelector('.csfloat-price');
-  const bitskinsCell = row.querySelector('.bitskins-price');
-  const dmarketCell = row.querySelector('.dmarket-price');
-  const bestCell = row.querySelector('.best-price');
-
   const filters = skin.filters || {};
 
   // Build CSFloat query params for float range and pattern
@@ -336,19 +383,44 @@ async function fetchPricesForSkin(skin) {
     updateCsfloatHeader();
   }
 
-  const skinportPrice = skinportData.price;
-  const steamPrice = steamData.price;
-  const csfloatPrice = csfloatData.price;
-  const bitskinsPrice = bitskinsData.price;
-  const dmarketPrice = dmarketData.price;
+  // Cache everything needed for cell rendering and modal display
+  priceCache.set(skin.id, {
+    skinport: skinportData.price,
+    steam: steamData.price,
+    csfloat: csfloatData.price,
+    csfloatFloat: csfloatData.float_value,
+    csfloatSeed: csfloatData.paint_seed,
+    csfloatInactive: csfloatData.inactive || false,
+    bitskins: bitskinsData.price,
+    dmarket: dmarketData.price,
+  });
+
+  renderPricesForSkin(skin);
+}
+
+function renderPricesForSkin(skin) {
+  const row = watchlistBody.querySelector(`tr[data-id="${CSS.escape(skin.id)}"]`);
+  if (!row) return;
+
+  const cached = priceCache.get(skin.id);
+  if (!cached) return;
+
+  const skinportCell = row.querySelector('.skinport-price');
+  const steamCell = row.querySelector('.steam-price');
+  const csfloatCell = row.querySelector('.csfloat-price');
+  const bitskinsCell = row.querySelector('.bitskins-price');
+  const dmarketCell = row.querySelector('.dmarket-price');
+  const bestCell = row.querySelector('.best-price');
+
+  const { skinport, steam, csfloat, csfloatFloat, csfloatSeed, csfloatInactive, bitskins, dmarket } = cached;
 
   // Determine cheapest across all active sources
   const prices = [];
-  if (skinportPrice != null) prices.push({ source: 'Skinport', price: skinportPrice });
-  if (steamPrice != null) prices.push({ source: 'Steam', price: steamPrice });
-  if (csfloatPrice != null) prices.push({ source: 'CSFloat', price: csfloatPrice });
-  if (bitskinsPrice != null) prices.push({ source: 'BitSkins', price: bitskinsPrice });
-  if (dmarketPrice != null) prices.push({ source: 'DMarket', price: dmarketPrice });
+  if (skinport != null) prices.push({ source: 'Skinport', price: skinport });
+  if (steam != null) prices.push({ source: 'Steam', price: steam });
+  if (csfloat != null) prices.push({ source: 'CSFloat', price: csfloat });
+  if (bitskins != null) prices.push({ source: 'BitSkins', price: bitskins });
+  if (dmarket != null) prices.push({ source: 'DMarket', price: dmarket });
   prices.sort((a, b) => a.price - b.price);
   const cheapest = prices.length > 0 ? prices[0].price : null;
 
@@ -357,64 +429,55 @@ async function fetchPricesForSkin(skin) {
     return p <= cheapest ? 'cheapest' : 'not-cheapest';
   }
 
-  // Cache prices for modal display
-  priceCache.set(skin.id, {
-    skinport: skinportPrice,
-    steam: steamPrice,
-    csfloat: csfloatPrice,
-    bitskins: bitskinsPrice,
-    dmarket: dmarketPrice,
-  });
-
   // Skinport cell
-  if (skinportPrice != null) {
-    skinportCell.innerHTML = `<div class="price-value">$${skinportPrice.toFixed(2)}</div>`;
-    skinportCell.className = 'price skinport-price ' + priceClass(skinportPrice);
+  if (skinport != null) {
+    skinportCell.innerHTML = `<div class="price-value">$${skinport.toFixed(2)}</div>`;
+    skinportCell.className = 'price skinport-price ' + priceClass(skinport);
   } else {
     skinportCell.innerHTML = '<div class="price-value">N/A</div>';
     skinportCell.className = 'price skinport-price unavailable';
   }
 
   // Steam cell
-  if (steamPrice != null) {
-    steamCell.innerHTML = `<div class="price-value">$${steamPrice.toFixed(2)}</div>`;
-    steamCell.className = 'price steam-price ' + priceClass(steamPrice);
+  if (steam != null) {
+    steamCell.innerHTML = `<div class="price-value">$${steam.toFixed(2)}</div>`;
+    steamCell.className = 'price steam-price ' + priceClass(steam);
   } else {
     steamCell.innerHTML = '<div class="price-value">N/A</div>';
     steamCell.className = 'price steam-price unavailable';
   }
 
   // CSFloat cell
-  if (csfloatData.inactive) {
+  if (csfloatInactive) {
     csfloatCell.innerHTML = '<span class="badge-inactive">Inactive</span>';
     csfloatCell.className = 'price csfloat-price';
-  } else if (csfloatPrice != null) {
+  } else if (csfloat != null) {
     const details = [];
-    if (csfloatData.float_value != null) details.push(`Float: ${formatFloat(csfloatData.float_value)}`);
-    if (csfloatData.paint_seed != null) details.push(`Pattern: #${csfloatData.paint_seed}`);
+    if (csfloatFloat != null) details.push(`Float: ${formatFloat(csfloatFloat)}`);
+    if (csfloatSeed != null) details.push(`Pattern: #${csfloatSeed}`);
     const detailsHtml = details.length > 0
       ? `<div class="listing-details">${details.join(' \u00b7 ')}</div>`
       : '';
-    csfloatCell.innerHTML = `<div class="price-value">$${csfloatPrice.toFixed(2)}</div>${detailsHtml}`;
-    csfloatCell.className = 'price csfloat-price ' + priceClass(csfloatPrice);
+    csfloatCell.innerHTML = `<div class="price-value">$${csfloat.toFixed(2)}</div>${detailsHtml}`;
+    csfloatCell.className = 'price csfloat-price ' + priceClass(csfloat);
   } else {
     csfloatCell.innerHTML = '<div class="price-value">N/A</div>';
     csfloatCell.className = 'price csfloat-price unavailable';
   }
 
   // BitSkins cell
-  if (bitskinsPrice != null) {
-    bitskinsCell.innerHTML = `<div class="price-value">$${bitskinsPrice.toFixed(2)}</div>`;
-    bitskinsCell.className = 'price bitskins-price ' + priceClass(bitskinsPrice);
+  if (bitskins != null) {
+    bitskinsCell.innerHTML = `<div class="price-value">$${bitskins.toFixed(2)}</div>`;
+    bitskinsCell.className = 'price bitskins-price ' + priceClass(bitskins);
   } else {
     bitskinsCell.innerHTML = '<div class="price-value">N/A</div>';
     bitskinsCell.className = 'price bitskins-price unavailable';
   }
 
   // DMarket cell
-  if (dmarketPrice != null) {
-    dmarketCell.innerHTML = `<div class="price-value">$${dmarketPrice.toFixed(2)}</div>`;
-    dmarketCell.className = 'price dmarket-price ' + priceClass(dmarketPrice);
+  if (dmarket != null) {
+    dmarketCell.innerHTML = `<div class="price-value">$${dmarket.toFixed(2)}</div>`;
+    dmarketCell.className = 'price dmarket-price ' + priceClass(dmarket);
   } else {
     dmarketCell.innerHTML = '<div class="price-value">N/A</div>';
     dmarketCell.className = 'price dmarket-price unavailable';

@@ -14,10 +14,10 @@
     </header>
 
     <section class="search-section">
-      <div class="search-box">
+      <form class="search-box" id="search-form">
         <input type="text" id="search-input" placeholder="Search for a skin (e.g. AK-47 | Redline)" autocomplete="off">
-        <button id="search-btn">Search</button>
-      </div>
+        <button type="submit" id="search-btn">Search</button>
+      </form>
       <div class="filters-panel">
         <button class="filters-toggle" id="filters-toggle">
           <span>Filters</span>
@@ -75,7 +75,18 @@
     <section class="watchlist-section">
       <div class="watchlist-header">
         <h2>Watchlist</h2>
-        <button id="refresh-btn">Refresh Prices</button>
+        <div class="watchlist-controls">
+          <select id="sort-select" class="sort-select">
+            <option value="dateDesc">Date Added (Newest)</option>
+            <option value="nameAsc">Name (A&ndash;Z)</option>
+            <option value="bestAsc">Best Price (Lowest)</option>
+            <option value="skinportAsc">Skinport Price (Lowest)</option>
+            <option value="steamAsc">Steam Price (Lowest)</option>
+            <option value="bitskinsAsc">BitSkins Price (Lowest)</option>
+            <option value="dmarketAsc">DMarket Price (Lowest)</option>
+          </select>
+          <button id="refresh-btn">Refresh Prices</button>
+        </div>
       </div>
       <div id="watchlist-empty" class="empty-state">
         <p>Your watchlist is empty. Search for skins above to add them.</p>
