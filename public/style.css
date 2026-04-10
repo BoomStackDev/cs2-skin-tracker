@@ -272,6 +272,20 @@ header h1 {
   color: #fff;
 }
 
+.search-result-item .add-btn.added,
+.search-result-item .add-btn:disabled {
+  background: #1a1a24;
+  color: #555;
+  border-color: #2a2a3a;
+  cursor: default;
+}
+
+.search-result-item .add-btn.added:hover,
+.search-result-item .add-btn:disabled:hover {
+  background: #1a1a24;
+  color: #555;
+}
+
 .search-no-results {
   padding: 16px;
   text-align: center;
@@ -545,6 +559,44 @@ th .badge-inactive {
 .modal-skin-filters {
   font-size: 0.82rem;
   color: #666;
+}
+
+.modal-skin-meta {
+  font-size: 0.82rem;
+  color: #888;
+}
+
+.modal-note {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 4px 0 16px;
+  font-style: italic;
+}
+
+.modal-add-btn {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  background: #ff6b00;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 16px;
+  min-height: 48px;
+  transition: background 0.2s;
+}
+
+.modal-add-btn:hover:not(:disabled) {
+  background: #e05e00;
+}
+
+.modal-add-btn:disabled {
+  background: #2a2a3a;
+  color: #555;
+  cursor: default;
 }
 
 .modal-prices {

@@ -75,12 +75,22 @@ async function searchSkins(query) {
       return;
     }
 
+    const currentFiltersStr = currentSavedFiltersJson();
     searchResults.innerHTML = items.map(item => {
       const wear = extractWear(item.name);
       const category = extractCategory(item.market_page);
       const meta = [category, wear].filter(Boolean).join(' \u00b7 ');
+      const alreadyAdded = watchlist.some(s =>
+        s.name === item.name && JSON.stringify(s.filters || {}) === currentFiltersStr
+      );
+      const buttonHtml = alreadyAdded
+        ? `<button class="add-btn added" disabled>Added</button>`
+        : `<button class="add-btn">+ Add</button>`;
       return `
-      <div class="search-result-item" data-name="${escapeAttr(item.name)}">
+      <div class="search-result-item"
+           data-name="${escapeAttr(item.name)}"
+           data-price="${item.min_price != null ? item.min_price : ''}"
+           data-market-page="${escapeAttr(item.market_page || '')}">
         <div class="result-left">
           <img class="skin-thumb" src="/api/image/${encodeURIComponent(item.name)}"
                onerror="this.style.display='none';this.nextElementSibling.style.display='block'" loading="lazy" alt="">
@@ -91,7 +101,7 @@ async function searchSkins(query) {
           </div>
         </div>
         <span class="price">${item.min_price != null ? '$' + item.min_price.toFixed(2) : ''}</span>
-        <button class="add-btn">+ Add</button>
+        ${buttonHtml}
       </div>`;
     }).join('');
   } catch {
@@ -110,20 +120,41 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Add skin from search results
-searchResults.addEventListener('click', async (e) => {
-  const addBtn = e.target.closest('.add-btn');
-  if (!addBtn) return;
+function markBtnAsAdded(addBtn) {
+  addBtn.textContent = 'Added';
+  addBtn.classList.add('added');
+  addBtn.disabled = true;
+}
 
-  const item = addBtn.closest('.search-result-item');
-  const name = item.dataset.name;
+function currentSavedFiltersJson() {
   const filters = getFilters();
-
-  // Only persist float/pattern filters (wear/stattrak/souvenir are in the name)
   const savedFilters = {};
   if (filters.floatMin != null) savedFilters.floatMin = filters.floatMin;
   if (filters.floatMax != null) savedFilters.floatMax = filters.floatMax;
   if (filters.paintSeed != null) savedFilters.paintSeed = filters.paintSeed;
+  return JSON.stringify(savedFilters);
+}
+
+// Open preview modal when clicking a search result (but not the add button)
+searchResults.addEventListener('click', (e) => {
+  if (e.target.closest('.add-btn')) return;
+  const item = e.target.closest('.search-result-item');
+  if (!item) return;
+  openSearchResultModal({
+    name: item.dataset.name,
+    min_price: item.dataset.price ? parseFloat(item.dataset.price) : null,
+    market_page: item.dataset.marketPage || '',
+  });
+});
+
+// Add skin from search results
+searchResults.addEventListener('click', async (e) => {
+  const addBtn = e.target.closest('.add-btn');
+  if (!addBtn || addBtn.disabled) return;
+
+  const item = addBtn.closest('.search-result-item');
+  const name = item.dataset.name;
+  const savedFilters = JSON.parse(currentSavedFiltersJson());
 
   try {
     const resp = await fetch('/api/watchlist', {
@@ -133,18 +164,23 @@ searchResults.addEventListener('click', async (e) => {
     });
 
     if (resp.status === 409) {
-      addBtn.textContent = 'Already added';
-      addBtn.disabled = true;
+      markBtnAsAdded(addBtn);
+      return;
+    }
+
+    if (!resp.ok) {
+      addBtn.textContent = 'Error';
+      console.error('Add failed:', resp.status, await resp.text().catch(() => ''));
       return;
     }
 
     watchlist = await resp.json();
-    addBtn.textContent = 'Added!';
-    addBtn.disabled = true;
+    markBtnAsAdded(addBtn);
     renderWatchlist();
     fetchAllPrices();
-  } catch {
+  } catch (err) {
     addBtn.textContent = 'Error';
+    console.error('Add request failed:', err);
   }
 });
 
@@ -498,13 +534,99 @@ function openSkinModal(skinId) {
   document.getElementById('skin-modal').classList.add('visible');
 }
 
+function openSearchResultModal(item) {
+  const name = item.name;
+  const wear = extractWear(name);
+  const category = extractCategory(item.market_page);
+  const meta = [category, wear].filter(Boolean).join(' \u00b7 ');
+
+  const filtersStr = currentSavedFiltersJson();
+  const alreadyAdded = watchlist.some(s =>
+    s.name === name && JSON.stringify(s.filters || {}) === filtersStr
+  );
+
+  const priceHtml = `
+    <div class="modal-price-row">
+      <span class="modal-source">Skinport</span>
+      <span class="modal-price-value${item.min_price != null ? '' : ' unavailable'}">${item.min_price != null ? '$' + item.min_price.toFixed(2) : 'N/A'}</span>
+    </div>`;
+
+  const addBtnHtml = alreadyAdded
+    ? `<button class="modal-add-btn" disabled>Added to Watchlist</button>`
+    : `<button class="modal-add-btn" data-name="${escapeAttr(name)}">+ Add to Watchlist</button>`;
+
+  const linksHtml = [
+    { label: 'View on Skinport', url: `https://skinport.com/item/${skinportSlug(name)}` },
+    { label: 'View on Steam', url: `https://steamcommunity.com/market/listings/730/${encodeURIComponent(name)}` },
+  ].map(l =>
+    `<a href="${escapeAttr(l.url)}" target="_blank" rel="noopener" class="modal-link">${escapeHtml(l.label)}</a>`
+  ).join('');
+
+  document.getElementById('modal-content').innerHTML = `
+    <button class="modal-close">&times;</button>
+    <img class="modal-skin-image" src="/api/image/${encodeURIComponent(name)}"
+         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">
+    <div class="modal-skin-placeholder" style="display:none"></div>
+    <h3 class="modal-skin-name">${escapeHtml(name)}</h3>
+    ${meta ? `<div class="modal-skin-meta">${escapeHtml(meta)}</div>` : ''}
+    <div class="modal-prices">${priceHtml}</div>
+    <div class="modal-note">Full price comparison available after adding to watchlist</div>
+    ${addBtnHtml}
+    <div class="modal-links">${linksHtml}</div>`;
+
+  document.getElementById('skin-modal').classList.add('visible');
+}
+
+async function handleModalAddClick(addBtn) {
+  const name = addBtn.dataset.name;
+  if (!name) return;
+
+  const savedFilters = JSON.parse(currentSavedFiltersJson());
+  addBtn.disabled = true;
+  addBtn.textContent = 'Adding...';
+
+  try {
+    const resp = await fetch('/api/watchlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, filters: savedFilters }),
+    });
+
+    if (resp.status === 409) {
+      addBtn.textContent = 'Already in Watchlist';
+      return;
+    }
+
+    if (!resp.ok) {
+      addBtn.textContent = 'Error';
+      addBtn.disabled = false;
+      console.error('Modal add failed:', resp.status, await resp.text().catch(() => ''));
+      return;
+    }
+
+    watchlist = await resp.json();
+    addBtn.textContent = 'Added to Watchlist';
+    renderWatchlist();
+    fetchAllPrices();
+  } catch (err) {
+    addBtn.textContent = 'Error';
+    addBtn.disabled = false;
+    console.error('Modal add request failed:', err);
+  }
+}
+
 function closeSkinModal() {
   document.getElementById('skin-modal').classList.remove('visible');
 }
 
-document.getElementById('skin-modal').addEventListener('click', (e) => {
+document.getElementById('skin-modal').addEventListener('click', async (e) => {
   if (e.target.id === 'skin-modal' || e.target.closest('.modal-close')) {
     closeSkinModal();
+    return;
+  }
+  const addBtn = e.target.closest('.modal-add-btn');
+  if (addBtn && !addBtn.disabled) {
+    await handleModalAddClick(addBtn);
   }
 });
 

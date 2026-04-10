@@ -53,6 +53,14 @@ app.post('/api/watchlist', async (req, res) => {
     if (!name) return res.status(400).json({ error: 'Skin name is required' });
 
     const watchlist = await getWatchlist();
+    const filtersStr = JSON.stringify(filters || {});
+    const exists = watchlist.some(s =>
+      s.name === name && JSON.stringify(s.filters || {}) === filtersStr
+    );
+    if (exists) {
+      return res.status(409).json({ error: 'Already in watchlist' });
+    }
+
     const id = crypto.randomUUID();
     watchlist.push({ id, name, filters: filters || {}, addedAt: new Date().toISOString() });
     await saveWatchlist(watchlist);
