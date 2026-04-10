@@ -111,6 +111,9 @@ app.get('/api/skinport/search', async (req, res) => {
     const wear = req.query.wear || '';
     const stattrak = req.query.stattrak || 'either';
     const souvenir = req.query.souvenir || 'either';
+    const priceMin = req.query.priceMin ? parseFloat(req.query.priceMin) : null;
+    const priceMax = req.query.priceMax ? parseFloat(req.query.priceMax) : null;
+    const hasPriceFilter = priceMin != null || priceMax != null;
 
     const items = await getSkinportItems();
 
@@ -138,9 +141,14 @@ app.get('/api/skinport/search', async (req, res) => {
         const isSouvenir = name.startsWith('Souvenir');
         if (souvenir === 'yes' && !isSouvenir) return false;
         if (souvenir === 'no' && isSouvenir) return false;
+        if (hasPriceFilter) {
+          if (item.min_price == null) return false;
+          if (priceMin != null && item.min_price < priceMin) return false;
+          if (priceMax != null && item.min_price > priceMax) return false;
+        }
         return true;
       })
-      .slice(0, 20)
+      .slice(0, 100)
       .map(item => ({
         name: item.market_hash_name,
         min_price: item.min_price,

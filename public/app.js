@@ -2,6 +2,8 @@ const searchInput = document.getElementById('search-input');
 const searchResults = document.getElementById('search-results');
 const filtersToggle = document.getElementById('filters-toggle');
 const filtersBody = document.getElementById('filters-body');
+const filterPriceMin = document.getElementById('filter-price-min');
+const filterPriceMax = document.getElementById('filter-price-max');
 const filterFloatMin = document.getElementById('filter-float-min');
 const filterFloatMax = document.getElementById('filter-float-max');
 const filterPaintSeed = document.getElementById('filter-paint-seed');
@@ -36,6 +38,8 @@ function updateCsfloatHeader() {
 
 function getFilters() {
   return {
+    priceMin: filterPriceMin.value ? parseFloat(filterPriceMin.value) : null,
+    priceMax: filterPriceMax.value ? parseFloat(filterPriceMax.value) : null,
     floatMin: filterFloatMin.value ? parseFloat(filterFloatMin.value) : null,
     floatMax: filterFloatMax.value ? parseFloat(filterFloatMax.value) : null,
     paintSeed: filterPaintSeed.value ? parseInt(filterPaintSeed.value, 10) : null,
@@ -67,6 +71,8 @@ async function searchSkins(query) {
   if (filters.wear) params.set('wear', filters.wear);
   if (filters.stattrak !== 'either') params.set('stattrak', filters.stattrak);
   if (filters.souvenir !== 'either') params.set('souvenir', filters.souvenir);
+  if (filters.priceMin != null) params.set('priceMin', filters.priceMin);
+  if (filters.priceMax != null) params.set('priceMax', filters.priceMax);
 
   try {
     const resp = await fetch(`/api/skinport/search?${params}`);
@@ -434,7 +440,7 @@ function renderPricesForSkin(skin) {
     skinportCell.innerHTML = `<div class="price-value">$${skinport.toFixed(2)}</div>`;
     skinportCell.className = 'price skinport-price ' + priceClass(skinport);
   } else {
-    skinportCell.innerHTML = '<div class="price-value">N/A</div>';
+    skinportCell.innerHTML = '<div class="price-value">Not listed</div>';
     skinportCell.className = 'price skinport-price unavailable';
   }
 
@@ -443,7 +449,7 @@ function renderPricesForSkin(skin) {
     steamCell.innerHTML = `<div class="price-value">$${steam.toFixed(2)}</div>`;
     steamCell.className = 'price steam-price ' + priceClass(steam);
   } else {
-    steamCell.innerHTML = '<div class="price-value">N/A</div>';
+    steamCell.innerHTML = '<div class="price-value">Not listed</div>';
     steamCell.className = 'price steam-price unavailable';
   }
 
@@ -461,7 +467,7 @@ function renderPricesForSkin(skin) {
     csfloatCell.innerHTML = `<div class="price-value">$${csfloat.toFixed(2)}</div>${detailsHtml}`;
     csfloatCell.className = 'price csfloat-price ' + priceClass(csfloat);
   } else {
-    csfloatCell.innerHTML = '<div class="price-value">N/A</div>';
+    csfloatCell.innerHTML = '<div class="price-value">Not listed</div>';
     csfloatCell.className = 'price csfloat-price unavailable';
   }
 
@@ -470,7 +476,7 @@ function renderPricesForSkin(skin) {
     bitskinsCell.innerHTML = `<div class="price-value">$${bitskins.toFixed(2)}</div>`;
     bitskinsCell.className = 'price bitskins-price ' + priceClass(bitskins);
   } else {
-    bitskinsCell.innerHTML = '<div class="price-value">N/A</div>';
+    bitskinsCell.innerHTML = '<div class="price-value">Not listed</div>';
     bitskinsCell.className = 'price bitskins-price unavailable';
   }
 
@@ -479,7 +485,7 @@ function renderPricesForSkin(skin) {
     dmarketCell.innerHTML = `<div class="price-value">$${dmarket.toFixed(2)}</div>`;
     dmarketCell.className = 'price dmarket-price ' + priceClass(dmarket);
   } else {
-    dmarketCell.innerHTML = '<div class="price-value">N/A</div>';
+    dmarketCell.innerHTML = '<div class="price-value">Not listed</div>';
     dmarketCell.className = 'price dmarket-price unavailable';
   }
 
@@ -566,7 +572,7 @@ function openSkinModal(skinId) {
   const priceRowsHtml = priceRows.map(r => `
     <div class="modal-price-row">
       <span class="modal-source">${r.source}</span>
-      <span class="modal-price-value${r.price != null ? '' : ' unavailable'}">${r.price != null ? '$' + r.price.toFixed(2) : 'N/A'}</span>
+      <span class="modal-price-value${r.price != null ? '' : ' unavailable'}">${r.price != null ? '$' + r.price.toFixed(2) : 'Not listed'}</span>
     </div>`).join('');
 
   // Marketplace links
@@ -611,7 +617,7 @@ function openSearchResultModal(item) {
   const priceHtml = `
     <div class="modal-price-row">
       <span class="modal-source">Skinport</span>
-      <span class="modal-price-value${item.min_price != null ? '' : ' unavailable'}">${item.min_price != null ? '$' + item.min_price.toFixed(2) : 'N/A'}</span>
+      <span class="modal-price-value${item.min_price != null ? '' : ' unavailable'}">${item.min_price != null ? '$' + item.min_price.toFixed(2) : 'Not listed'}</span>
     </div>`;
 
   const addBtnHtml = alreadyAdded
