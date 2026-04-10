@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CS2 Skin Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>CS2 Skin Tracker</h1>
+      <p class="subtitle">Compare prices across marketplaces</p>
+    </header>
+
+    <section class="search-section">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Search for a skin (e.g. AK-47 | Redline)" autocomplete="off">
+        <button id="search-btn">Search</button>
+      </div>
+      <div class="filters-panel">
+        <button class="filters-toggle" id="filters-toggle">
+          <span>Filters</span>
+          <span class="toggle-icon">&#9660;</span>
+        </button>
+        <div class="filters-body" id="filters-body" hidden>
+          <div class="filter-row">
+            <div class="filter-group">
+              <label for="filter-float-min">Float Min</label>
+              <input type="number" id="filter-float-min" min="0" max="1" step="0.01" placeholder="0.00">
+            </div>
+            <div class="filter-group">
+              <label for="filter-float-max">Float Max</label>
+              <input type="number" id="filter-float-max" min="0" max="1" step="0.01" placeholder="1.00">
+            </div>
+            <div class="filter-group">
+              <label for="filter-paint-seed">Paint Seed</label>
+              <input type="number" id="filter-paint-seed" min="0" max="999" step="1" placeholder="Any">
+            </div>
+          </div>
+          <div class="filter-row">
+            <div class="filter-group">
+              <label for="filter-wear">Wear</label>
+              <select id="filter-wear">
+                <option value="">Any</option>
+                <option value="Factory New">Factory New</option>
+                <option value="Minimal Wear">Minimal Wear</option>
+                <option value="Field-Tested">Field-Tested</option>
+                <option value="Well-Worn">Well-Worn</option>
+                <option value="Battle-Scarred">Battle-Scarred</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="filter-stattrak">StatTrak</label>
+              <select id="filter-stattrak">
+                <option value="either">Either</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="filter-souvenir">Souvenir</label>
+              <select id="filter-souvenir">
+                <option value="either">Either</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="search-results" class="search-results"></div>
+    </section>
+
+    <section class="watchlist-section">
+      <div class="watchlist-header">
+        <h2>Watchlist</h2>
+        <button id="refresh-btn">Refresh Prices</button>
+      </div>
+      <div id="watchlist-empty" class="empty-state">
+        <p>Your watchlist is empty. Search for skins above to add them.</p>
+      </div>
+      <table id="watchlist-table" class="watchlist-table" hidden>
+        <thead>
+          <tr>
+            <th>Skin</th>
+            <th>Skinport</th>
+            <th>Steam</th>
+            <th id="csfloat-header">CSFloat</th>
+            <th id="skinmonkey-header">Skin Monkey <span class="badge-inactive">Inactive</span><div class="activate-hint">No public API available</div></th>
+            <th>Best</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="watchlist-body"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <div class="modal-overlay" id="skin-modal">
+    <div class="modal-content" id="modal-content"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
