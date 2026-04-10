@@ -426,6 +426,10 @@ td.price.unavailable {
   margin-top: 3px;
 }
 
+.mobile-hint {
+  display: none;
+}
+
 .listing-details {
   font-size: 0.78rem;
   color: #777;
@@ -683,7 +687,11 @@ th .badge-inactive {
 }
 
 /* Responsive */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .container {
+    padding: 24px 12px;
+  }
+
   .search-box {
     flex-direction: column;
   }
@@ -695,7 +703,7 @@ th .badge-inactive {
   .watchlist-header {
     flex-direction: column;
     gap: 12px;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
   .watchlist-controls {
@@ -704,17 +712,39 @@ th .badge-inactive {
     align-items: stretch;
   }
 
-  .sort-select {
+  .sort-select,
+  #refresh-btn {
     width: 100%;
   }
 
+  /* Hide marketplace columns on mobile, keep Skin / Best / Remove */
+  .watchlist-table .mobile-hide {
+    display: none;
+  }
+
+  /* Make the skin name column take most of the width */
+  .watchlist-table th:first-child,
+  .watchlist-table td:first-child {
+    width: 70%;
+  }
+
   .watchlist-table {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
 
   .watchlist-table thead th,
   .watchlist-table tbody td {
-    padding: 10px 8px;
+    padding: 12px 10px;
+    word-break: break-word;
+  }
+
+  /* Show the tap-to-compare hint under each skin name */
+  .mobile-hint {
+    display: block;
+    font-size: 0.72rem;
+    color: #777;
+    margin-top: 4px;
+    font-style: italic;
   }
 
   .modal-content {

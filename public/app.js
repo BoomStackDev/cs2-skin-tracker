@@ -284,13 +284,14 @@ function renderWatchlist() {
       <td>
         <div class="skin-name">${escapeHtml(skin.name)}</div>
         ${filterText ? `<div class="skin-filters">${escapeHtml(filterText)}</div>` : ''}
+        <div class="mobile-hint">Tap name to compare prices</div>
       </td>
-      <td class="price skinport-price"><span class="loading-dots">Loading</span></td>
-      <td class="price steam-price"><span class="loading-dots">Loading</span></td>
-      <td class="price csfloat-price">${csfloatActive ? '<span class="loading-dots">Loading</span>' : '<span class="badge-inactive">Inactive</span>'}</td>
-      <td class="price bitskins-price"><span class="loading-dots">Loading</span></td>
-      <td class="price dmarket-price"><span class="loading-dots">Loading</span></td>
-      <td class="price skinmonkey-price"><span class="badge-inactive">Inactive</span></td>
+      <td class="price skinport-price mobile-hide"><span class="loading-dots">Loading</span></td>
+      <td class="price steam-price mobile-hide"><span class="loading-dots">Loading</span></td>
+      <td class="price csfloat-price mobile-hide">${csfloatActive ? '<span class="loading-dots">Loading</span>' : '<span class="badge-inactive">Inactive</span>'}</td>
+      <td class="price bitskins-price mobile-hide"><span class="loading-dots">Loading</span></td>
+      <td class="price dmarket-price mobile-hide"><span class="loading-dots">Loading</span></td>
+      <td class="price skinmonkey-price mobile-hide"><span class="badge-inactive">Inactive</span></td>
       <td class="best-price">-</td>
       <td style="text-align:center">
         <button class="remove-btn" title="Remove from watchlist">&times;</button>
@@ -438,25 +439,25 @@ function renderPricesForSkin(skin) {
   // Skinport cell
   if (skinport != null) {
     skinportCell.innerHTML = `<div class="price-value">$${skinport.toFixed(2)}</div>`;
-    skinportCell.className = 'price skinport-price ' + priceClass(skinport);
+    skinportCell.className = 'price skinport-price mobile-hide ' + priceClass(skinport);
   } else {
     skinportCell.innerHTML = '<div class="price-value">Not listed</div>';
-    skinportCell.className = 'price skinport-price unavailable';
+    skinportCell.className = 'price skinport-price mobile-hide unavailable';
   }
 
   // Steam cell
   if (steam != null) {
     steamCell.innerHTML = `<div class="price-value">$${steam.toFixed(2)}</div>`;
-    steamCell.className = 'price steam-price ' + priceClass(steam);
+    steamCell.className = 'price steam-price mobile-hide ' + priceClass(steam);
   } else {
     steamCell.innerHTML = '<div class="price-value">Not listed</div>';
-    steamCell.className = 'price steam-price unavailable';
+    steamCell.className = 'price steam-price mobile-hide unavailable';
   }
 
   // CSFloat cell
   if (csfloatInactive) {
     csfloatCell.innerHTML = '<span class="badge-inactive">Inactive</span>';
-    csfloatCell.className = 'price csfloat-price';
+    csfloatCell.className = 'price csfloat-price mobile-hide';
   } else if (csfloat != null) {
     const details = [];
     if (csfloatFloat != null) details.push(`Float: ${formatFloat(csfloatFloat)}`);
@@ -465,28 +466,28 @@ function renderPricesForSkin(skin) {
       ? `<div class="listing-details">${details.join(' \u00b7 ')}</div>`
       : '';
     csfloatCell.innerHTML = `<div class="price-value">$${csfloat.toFixed(2)}</div>${detailsHtml}`;
-    csfloatCell.className = 'price csfloat-price ' + priceClass(csfloat);
+    csfloatCell.className = 'price csfloat-price mobile-hide ' + priceClass(csfloat);
   } else {
     csfloatCell.innerHTML = '<div class="price-value">Not listed</div>';
-    csfloatCell.className = 'price csfloat-price unavailable';
+    csfloatCell.className = 'price csfloat-price mobile-hide unavailable';
   }
 
   // BitSkins cell
   if (bitskins != null) {
     bitskinsCell.innerHTML = `<div class="price-value">$${bitskins.toFixed(2)}</div>`;
-    bitskinsCell.className = 'price bitskins-price ' + priceClass(bitskins);
+    bitskinsCell.className = 'price bitskins-price mobile-hide ' + priceClass(bitskins);
   } else {
     bitskinsCell.innerHTML = '<div class="price-value">Not listed</div>';
-    bitskinsCell.className = 'price bitskins-price unavailable';
+    bitskinsCell.className = 'price bitskins-price mobile-hide unavailable';
   }
 
   // DMarket cell
   if (dmarket != null) {
     dmarketCell.innerHTML = `<div class="price-value">$${dmarket.toFixed(2)}</div>`;
-    dmarketCell.className = 'price dmarket-price ' + priceClass(dmarket);
+    dmarketCell.className = 'price dmarket-price mobile-hide ' + priceClass(dmarket);
   } else {
     dmarketCell.innerHTML = '<div class="price-value">Not listed</div>';
-    dmarketCell.className = 'price dmarket-price unavailable';
+    dmarketCell.className = 'price dmarket-price mobile-hide unavailable';
   }
 
   // Best price cell
