@@ -430,6 +430,10 @@ td.price.unavailable {
   display: none;
 }
 
+.best-source-short {
+  display: none;
+}
+
 .listing-details {
   font-size: 0.78rem;
   color: #777;
@@ -633,11 +637,14 @@ th .badge-inactive {
 
 .modal-prices {
   margin: 20px 0;
+  text-align: left;
 }
 
 .modal-price-row {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
   padding: 8px 0;
   border-bottom: 1px solid #222233;
 }
@@ -649,12 +656,17 @@ th .badge-inactive {
 .modal-source {
   color: #888;
   font-size: 0.9rem;
+  min-width: 0;
+  text-align: left;
 }
 
 .modal-price-value {
   color: #4caf50;
   font-weight: 600;
   font-size: 0.9rem;
+  flex-shrink: 0;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .modal-price-value.unavailable {
@@ -725,7 +737,24 @@ th .badge-inactive {
   /* Make the skin name column take most of the width */
   .watchlist-table th:first-child,
   .watchlist-table td:first-child {
-    width: 70%;
+    width: 55%;
+  }
+
+  /* Best price column: give it room and shrink the text */
+  .watchlist-table th:nth-last-child(2),
+  .watchlist-table td:nth-last-child(2) {
+    width: 35%;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  /* Use abbreviated source names in the Best column on mobile */
+  .best-source {
+    display: none;
+  }
+
+  .best-source-short {
+    display: inline;
   }
 
   .watchlist-table {
@@ -734,7 +763,7 @@ th .badge-inactive {
 
   .watchlist-table thead th,
   .watchlist-table tbody td {
-    padding: 12px 10px;
+    padding: 12px 8px;
     word-break: break-word;
   }
 
@@ -748,8 +777,8 @@ th .badge-inactive {
   }
 
   .modal-content {
-    width: 94%;
-    padding: 24px 20px;
+    width: 96%;
+    padding: 24px 16px;
     max-height: 92vh;
   }
 

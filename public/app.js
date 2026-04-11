@@ -490,14 +490,27 @@ function renderPricesForSkin(skin) {
     dmarketCell.className = 'price dmarket-price mobile-hide unavailable';
   }
 
-  // Best price cell
+  // Best price cell — full source on desktop, abbreviated on mobile (CSS toggles)
   if (prices.length > 0) {
-    bestCell.textContent = `$${prices[0].price.toFixed(2)} (${prices[0].source})`;
+    const best = prices[0];
+    bestCell.innerHTML = `$${best.price.toFixed(2)} `
+      + `<span class="best-source">(${best.source})</span>`
+      + `<span class="best-source-short">(${shortSource(best.source)})</span>`;
     bestCell.className = 'best-price';
   } else {
     bestCell.textContent = '-';
     bestCell.className = 'best-price';
   }
+}
+
+function shortSource(source) {
+  return {
+    Skinport: 'SP',
+    Steam: 'ST',
+    CSFloat: 'CF',
+    BitSkins: 'BS',
+    DMarket: 'DM',
+  }[source] || source;
 }
 
 function formatFloat(value) {
